@@ -1,0 +1,5 @@
+numpy
+Pillow
+pywin32
+sounddevice
+soundfile
