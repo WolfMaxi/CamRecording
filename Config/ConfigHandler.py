@@ -2,7 +2,7 @@ from configparser import ConfigParser
 import os
 
 import Config.Settings as Settings
-
+from Config import ConfigUtils
 
 class ConfigHandler:
     """
@@ -92,7 +92,6 @@ class ConfigHandler:
 
     def __init__(self, MainWindow):
         self.main = MainWindow
-        config_root = os.path.join(os.environ['LOCALAPPDATA'], 'WolfSoftware')
-        self.config_folder = os.path.join(config_root, 'CamRecording')
+        self.config_folder = ConfigUtils.get_config_dir()
         self.config_file = os.path.join(self.config_folder, 'config.ini')
         self.config = ConfigParser()

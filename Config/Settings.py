@@ -1,5 +1,7 @@
 VERSION = '1.0'
-ICON_FILE = 'Assets/icon.ico'
+ICON_PATH_WIN = 'Assets/icon.ico'
+ICON_PATH_UNIX = 'Assets/icon.png'
+CONFIG_PATH = 'WolfSoftware/CamRecording'
 WINDOW_TITLE = 'CamRec v%s (c) Maximilian Wolf 2024' % VERSION
 WINDOW_WIDTH = 560
 WINDOW_HEIGHT = 360
