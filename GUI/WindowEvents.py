@@ -17,8 +17,12 @@ class WindowEvents:
     def update_thres(self, threshold):
         # Update threshold line in preview canvas
         audio_clamp = Settings.AUDIO_CLAMP
-        line_height = 272 + (int(threshold) - audio_clamp) / audio_clamp * 270
-        self.main.preview.coords(self.main.thres_line, 480, line_height, 500, line_height)
+        width, height = self.main.preview_size
+        # x / height = threshold / audio_clamp
+        line_height = int(threshold) / audio_clamp * height
+        print(width, height, threshold, audio_clamp)
+        print(0, line_height, width, line_height)
+        self.main.preview.coords(self.main.thres_line, 0, line_height, width, line_height)
 
     def open_output(self):
         # Open output folder in Windows explorer

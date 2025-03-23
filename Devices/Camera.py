@@ -24,12 +24,12 @@ class Camera:
             cap.release()
         return available_cameras
 
-    def retrieve_preview(self):
+    def retrieve_preview(self, size):
         # Retrieve camera preview for MainWindow
         frame = self.current_frame
         if frame is None:
             return
-        resized_frame = cv2.resize(frame, (480, 270))
+        resized_frame = cv2.resize(frame, size)
         rec_status = self.rec_status
         if rec_status:
             cv2.circle(resized_frame, self.circle_pos, self.circle_radius, self.rec_colors[rec_status], -1)

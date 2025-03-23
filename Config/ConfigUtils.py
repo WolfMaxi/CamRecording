@@ -5,6 +5,7 @@ import os
 
 using_windows = os.name == 'nt'
 
+
 def get_config_dir():
     """
     Retrieve Config Directory under Windows / UNIX
@@ -13,6 +14,7 @@ def get_config_dir():
         return os.path.join(os.environ['USERPROFILE'], Settings.CONFIG_PATH)  # Windows
     else:
         return os.path.join('~/.config', Settings.CONFIG_PATH)
+
 
 def get_documents_dir():
     """
