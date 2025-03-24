@@ -20,9 +20,7 @@ class WindowEvents:
         width, height = self.main.preview_size
         # x / height = threshold / audio_clamp
         line_height = int(threshold) / audio_clamp * height
-        print(width, height, threshold, audio_clamp)
-        print(0, line_height, width, line_height)
-        self.main.preview.coords(self.main.thres_line, 0, line_height, width, line_height)
+        #self.main.preview.coords(self.main.thres_line, 0, line_height, width, line_height)
 
     def open_output(self):
         # Open output folder in Windows explorer
