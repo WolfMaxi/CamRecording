@@ -141,15 +141,17 @@ class MainWindow:
             self.window.iconphoto(True, icon)
 
     def get_preview_size(self):
+        """
+        Determine maximum preview size maintaining its aspect ratio
+        """
         # determine aspect ratio
         width, height = map(int, self.resolution.get().split('x'))
         aspect_ratio = width / height
 
         # Calculate width including audio meter
         audio_meter_width = Settings.AUDIO_METER_WIDTH + self.thres_slider.winfo_width()
-        max_width = self.middle_frame.winfo_width() - audio_meter_width
-        max_height = self.middle_frame.winfo_width()
-
+        max_width = self.window.winfo_width() - audio_meter_width
+        max_height = self.window.winfo_height() - (self.top_frame.winfo_height() + self.bottom_frame.winfo_height())
         if max_width / max_height > aspect_ratio:
             # Window is too wide, limit by height
             height = max_height
@@ -217,20 +219,20 @@ class MainWindow:
         self.center_frame.grid_rowconfigure(1, weight=1)
         self.center_frame.grid_columnconfigure(0, weight=1)
 
-        top_frame = tk.Frame(self.center_frame, height=30, bg=bg_color)
+        self.top_frame = tk.Frame(self.center_frame, height=30, bg=bg_color)
         self.middle_frame = tk.Frame(self.center_frame, bg='black')
-        bottom_frame = tk.Frame(self.center_frame, height=60, bg=bg_color)
+        self.bottom_frame = tk.Frame(self.center_frame, height=60, bg=bg_color)
 
-        top_frame.grid(row=0, column=0, sticky='we')
+        self.top_frame.grid(row=0, column=0, sticky='we')
         self.middle_frame.grid(row=1, column=0, sticky='nsew')
-        bottom_frame.grid(row=2, column=0, sticky='we')
+        self.bottom_frame.grid(row=2, column=0, sticky='we')
 
         # --------------- Top frame ---------------
 
-        self.preview_label = tk.Label(top_frame, text='Preview', font=font_large, **widget_opts)
+        self.preview_label = tk.Label(self.top_frame, text='Preview', font=font_large, **widget_opts)
         self.preview_label.pack(side='left')
 
-        self.db_label = tk.Label(top_frame, text='Audio threshold', font=font_large, **widget_opts)
+        self.db_label = tk.Label(self.top_frame, text='Audio threshold', font=font_large, **widget_opts)
         self.db_label.pack(side='right')
 
         # ---------------- Mid frame ---------------
@@ -252,25 +254,25 @@ class MainWindow:
 
         # ------------- First column ------------
 
-        device_label = tk.Label(bottom_frame, text='Device', font=font_large, **widget_opts)
+        device_label = tk.Label(self.bottom_frame, text='Device', font=font_large, **widget_opts)
         device_label.grid(row=0, column=0, sticky='w', padx=(0, padding))
 
         # Camera selection menu
 
-        camera_label = tk.Label(bottom_frame, text='Camera', font=font_small, **widget_opts)
+        camera_label = tk.Label(self.bottom_frame, text='Camera', font=font_small, **widget_opts)
         camera_label.grid(row=0, column=1, sticky='w', padx=(0, padding))
 
         self.cam_index = tk.StringVar(value='-')
         self.available_cameras = Camera.get_available_cameras()
         if self.available_cameras:
             self.cam_index.set(self.available_cameras[0])
-        cam_menu = ttk.OptionMenu(bottom_frame, self.cam_index, self.cam_index.get(),*self.available_cameras,
+        cam_menu = ttk.OptionMenu(self.bottom_frame, self.cam_index, self.cam_index.get(),*self.available_cameras,
                                   command=lambda cam: self.init_camera())
         cam_menu.grid(row=0, column=2, sticky='we', padx=(0, padding))
 
         # Audio device selection
 
-        mic_label = tk.Label(bottom_frame, text='Audio', font=font_small, **widget_opts)
+        mic_label = tk.Label(self.bottom_frame, text='Audio', font=font_small, **widget_opts)
         mic_label.grid(row=0, column=3, sticky='w', padx=(0, padding))
 
         # retrieve all audio input devices
@@ -280,45 +282,45 @@ class MainWindow:
         self.input_device_name = tk.StringVar(value=self.input_device_names[0])
         self.device_index = self.input_devices[self.input_device_name.get()]
 
-        mic_menu = ttk.OptionMenu(bottom_frame, self.input_device_name, self.input_device_names[0],
+        mic_menu = ttk.OptionMenu(self.bottom_frame, self.input_device_name, self.input_device_names[0],
                                       *self.input_device_names[1:],command=lambda mic: self.init_microphone())
         mic_menu.grid(row=0, column=4, sticky='we', padx=(0, padding))
 
-        self.start_button = ttk.Button(bottom_frame, text='Start', command=self.winevent.toggle_recording)
+        self.start_button = ttk.Button(self.bottom_frame, text='Start', command=self.winevent.toggle_recording)
         self.start_button.grid(row=0, column=5, sticky='w', padx=(0, padding))
 
         # ------------- Second column ------------
 
-        output_label = tk.Label(bottom_frame, text='Output', font=font_large, **widget_opts)
+        output_label = tk.Label(self.bottom_frame, text='Output', font=font_large, **widget_opts)
         output_label.bind('<Double-1>', lambda event: self.winevent.open_output())
         output_label.grid(row=1, column=0, sticky='w', padx=(0, padding))
 
         # Resolution
 
-        res_label = tk.Label(bottom_frame, text='Resolution', font=font_small, **widget_opts)
+        res_label = tk.Label(self.bottom_frame, text='Resolution', font=font_small, **widget_opts)
         res_label.grid(row=1, column=1, sticky='w', padx=(0, padding))
 
         resolutions = Settings.RESOLUTIONS
         self.resolution = tk.StringVar(value=resolutions[0])
-        self.res_menu = ttk.OptionMenu(bottom_frame, self.resolution, resolutions[0], *resolutions,
+        self.res_menu = ttk.OptionMenu(self.bottom_frame, self.resolution, resolutions[0], *resolutions,
                                        command=lambda res: self.init_camera())
         self.res_menu.grid(row=1, column=2, sticky='w', padx=(0, padding))
 
-        path_label = tk.Label(bottom_frame, text='Path', font=font_small, **widget_opts)
+        path_label = tk.Label(self.bottom_frame, text='Path', font=font_small, **widget_opts)
         path_label.grid(row=1, column=3, sticky='w', padx=(0, padding))
 
         documents_path = ConfigUtils.get_documents_dir()
         self.output = tk.StringVar(value=documents_path)
-        output_text = ttk.Entry(bottom_frame, textvariable=self.output, state='readonly')
+        output_text = ttk.Entry(self.bottom_frame, textvariable=self.output, state='readonly')
         output_text.grid(row=1, column=4, sticky='we', padx=(0, padding))
 
-        browse_button = ttk.Button(bottom_frame, text='Browse', command=self.winevent.set_output)
+        browse_button = ttk.Button(self.bottom_frame, text='Browse', command=self.winevent.set_output)
         browse_button.grid(row=1, column=5, sticky='w', padx=(0, padding))
 
         # HUD
 
         self.hud_enabled = tk.BooleanVar(value=True)
-        self.hud_button = ttk.Checkbutton(bottom_frame, text='HUD', variable=self.hud_enabled,
+        self.hud_button = ttk.Checkbutton(self.bottom_frame, text='HUD', variable=self.hud_enabled,
                        command=self.winevent.toggle_hud)
         self.hud_button.grid(row=0, column=6, sticky='w', padx=(0, padding))
 
