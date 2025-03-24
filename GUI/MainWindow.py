@@ -140,22 +140,15 @@ class MainWindow:
             icon = ImageTk.PhotoImage(icon)
             self.window.iconphoto(True, icon)
 
-    def on_resize(self):
-        border_x = Settings.PREVIEW_BORDER_X
-        border_y = Settings.PREVIEW_BORDER_Y
-        aspect_ratio = Settings.PREVIEW_ASPECT_RATIO
-        audio_meter_width = Settings.AUDIO_METER_WIDTH
-
-        window_width = self.window.winfo_width()
-        window_height = self.window.winfo_height()
-
+    def get_preview_size(self):
+        # determine aspect ratio
+        width, height = map(int, self.resolution.get().split('x'))
+        aspect_ratio = width / height
 
         # Calculate width including audio meter
-        max_width = window_width - (2 * border_x + audio_meter_width)
-        max_height = window_height - 2 * border_y
-
-        aspect_width, aspect_height = aspect_ratio
-        aspect_ratio = aspect_width / aspect_height
+        audio_meter_width = Settings.AUDIO_METER_WIDTH + self.thres_slider.winfo_width()
+        max_width = self.middle_frame.winfo_width() - audio_meter_width
+        max_height = self.middle_frame.winfo_width()
 
         if max_width / max_height > aspect_ratio:
             # Window is too wide, limit by height
@@ -165,25 +158,18 @@ class MainWindow:
             # Window is too tall, limit by width
             width = max_width
             height = round(width / aspect_ratio)
+        return width, height
 
+    def on_resize(self):
+        width, height = self.get_preview_size()
         if (width, height) != self.preview_size:
             # Only change when preview is resized
             self.preview_size = (width, height)
-            frame_width = width + audio_meter_width
-
-            self.center_frame.config(width=frame_width, height=height)
-            self.center_frame.place(relx=.5, rely=.5, anchor='center')
-
-            self.db_label.place(x=frame_width, y=0, anchor='ne')
-
-            self.thres_slider.config(length=height - 30)
-            self.thres_slider.place(x=frame_width, y=30, anchor='ne')
-
+            self.preview.config(width=width, height=height)
 
     def __init__(self):
         self.cam = None
         self.mic = None
-        self.preview_size = None
         self.last_trigger = None
         self.rec_status = 0
 
@@ -226,15 +212,18 @@ class MainWindow:
         self.window.update_idletasks()
 
         self.center_frame = tk.Frame(self.window)
+        self.center_frame.pack(fill='both', expand=True)
+
+        self.center_frame.grid_rowconfigure(1, weight=1)
+        self.center_frame.grid_columnconfigure(0, weight=1)
+
         top_frame = tk.Frame(self.center_frame, height=30, bg=bg_color)
-        middle_frame = tk.Frame(self.center_frame, bg=bg_color)
+        self.middle_frame = tk.Frame(self.center_frame, bg='black')
         bottom_frame = tk.Frame(self.center_frame, height=60, bg=bg_color)
 
-        top_frame.pack(side='top', fill='x')
-        middle_frame.pack(side='top', fill='both', expand=True)
-        bottom_frame.pack(side='bottom', fill='x')
-
-        self.center_frame.pack(fill="both", expand=True)
+        top_frame.grid(row=0, column=0, sticky='we')
+        self.middle_frame.grid(row=1, column=0, sticky='nsew')
+        bottom_frame.grid(row=2, column=0, sticky='we')
 
         # --------------- Top frame ---------------
 
@@ -246,20 +235,20 @@ class MainWindow:
 
         # ---------------- Mid frame ---------------
 
-        self.preview = tk.Canvas(middle_frame, bg='black', highlightthickness=0)
+        self.preview = tk.Canvas(self.middle_frame, bg='black', highlightthickness=0)
         self.preview.pack(side='left')
 
         self.threshold = tk.IntVar()
-        self.thres_slider = ttk.Scale(middle_frame,from_=0, to=Settings.AUDIO_CLAMP,variable=self.threshold,
+        self.thres_slider = ttk.Scale(self.middle_frame,from_=0, to=Settings.AUDIO_CLAMP,variable=self.threshold,
                                      command=self.winevent.update_thres, orient='vertical')
         self.thres_slider.pack(side='right', fill='y')
 
-        self.audio_meter = tk.Canvas(middle_frame, width=Settings.AUDIO_METER_WIDTH, bg='black', highlightthickness=0)
+        self.audio_meter = tk.Canvas(self.middle_frame, width=Settings.AUDIO_METER_WIDTH, bg='black', highlightthickness=0)
         self.audio_meter.pack(side='right', fill='y')
 
         # ============== Bottom frame ==============
 
-        padding = 20
+        padding = 10
 
         # ------------- First column ------------
 
@@ -275,7 +264,7 @@ class MainWindow:
         self.available_cameras = Camera.get_available_cameras()
         if self.available_cameras:
             self.cam_index.set(self.available_cameras[0])
-        cam_menu = ttk.OptionMenu(bottom_frame, self.cam_index, self.cam_index.get(),*self.available_cameras[1:],
+        cam_menu = ttk.OptionMenu(bottom_frame, self.cam_index, self.cam_index.get(),*self.available_cameras,
                                   command=lambda cam: self.init_camera())
         cam_menu.grid(row=0, column=2, sticky='we', padx=(0, padding))
 
@@ -310,8 +299,8 @@ class MainWindow:
         res_label.grid(row=1, column=1, sticky='w', padx=(0, padding))
 
         resolutions = Settings.RESOLUTIONS
-        self.resolution = tk.StringVar(value=resolutions[1])
-        self.res_menu = ttk.OptionMenu(bottom_frame, self.resolution, resolutions[0], *resolutions[1:],
+        self.resolution = tk.StringVar(value=resolutions[0])
+        self.res_menu = ttk.OptionMenu(bottom_frame, self.resolution, resolutions[0], *resolutions,
                                        command=lambda res: self.init_camera())
         self.res_menu.grid(row=1, column=2, sticky='w', padx=(0, padding))
 
@@ -334,23 +323,16 @@ class MainWindow:
         self.hud_button.grid(row=0, column=6, sticky='w', padx=(0, padding))
 
         # Load and apply settings from config file
-        """try:
+        try:
             self.conf_handler.load_config()
         except FileNotFoundError:
             pass
 
-        self.on_resize()
-
-        width, height = self.preview_size
+        width, height = self.get_preview_size()
+        self.preview_size = (width, height)
         preview_center = (width / 2, height / 2)
 
-        self.preview.create_text(*preview_center, text='No cam found', fill='white', anchor='center')
-
-        self.volume = self.preview.create_rectangle(0, 0, width, 0, fill='green')
-        self.thres_line = self.preview.create_line(0, 0, width, 0, fill='red', width=2)
-
         self.cam_stream = self.preview.create_image(*preview_center)
-
         self.window.bind("<Configure>", lambda event: self.on_resize())
 
         self.winevent.update_thres(self.threshold.get())
@@ -358,7 +340,7 @@ class MainWindow:
         self.init_microphone()
         if self.available_cameras:
             self.init_camera()
-            self.update_preview()"""
+            self.update_preview()
 
         loading_text.destroy()
 
