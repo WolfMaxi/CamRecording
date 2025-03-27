@@ -34,9 +34,10 @@ class MainWindow:
         audio_clamp = Settings.AUDIO_CLAMP
         volume_normalized = min(max(volume, audio_clamp), 0)
         color = self.meter_color(volume_normalized)
-        meter_height = 272 + int((volume_normalized - audio_clamp) / audio_clamp * 270)
-        #self.preview.coords(self.volume, 480, meter_height, 502, 272)
-        #self.preview.itemconfig(self.volume, fill=color)
+        width, height = self.audio_meter.winfo_width(), self.audio_meter.winfo_height()
+        meter_height = height + int((volume_normalized - audio_clamp) / audio_clamp * height)
+        self.audio_meter.coords(self.volume, 0, height, width, meter_height)
+        self.audio_meter.itemconfig(self.volume, fill=color)
 
     def start_recording(self):
         output = self.output.get()
@@ -248,8 +249,12 @@ class MainWindow:
                                      command=self.winevent.update_thres, orient='vertical')
         self.thres_slider.pack(side='right', fill='y')
 
-        self.audio_meter = tk.Canvas(self.middle_frame, width=Settings.AUDIO_METER_WIDTH, bg='green', highlightthickness=0)
+        self.audio_meter = tk.Canvas(self.middle_frame, width=Settings.AUDIO_METER_WIDTH, bg=Settings.AUDIO_METER_COLOR, highlightthickness=0)
         self.audio_meter.pack(side='right', fill='y')
+
+        # Audio Meter elements
+        self.thres_line = self.audio_meter.create_line(0, 0, Settings.AUDIO_METER_WIDTH, 0, fill='red', width=2)
+        self.volume = self.audio_meter.create_rectangle(0, 0, 0, 0, outline='')
 
         # ============== Bottom frame ==============
 
@@ -325,7 +330,7 @@ class MainWindow:
         self.hud_enabled = tk.BooleanVar(value=True)
         self.hud_button = ttk.Checkbutton(self.bottom_frame, text='HUD', variable=self.hud_enabled,
                        command=self.winevent.toggle_hud)
-        self.hud_button.grid(row=0, column=6, sticky='w', padx=(0, padding))
+        self.hud_button.grid(row=0, column=6, sticky='w')
 
         # Load and apply settings from config file
         try:
@@ -339,6 +344,7 @@ class MainWindow:
 
         self.cam_stream = self.preview.create_image(*preview_center)
         self.window.bind("<Configure>", lambda event: self.on_resize())
+
 
         self.winevent.update_thres(self.threshold.get())
 
