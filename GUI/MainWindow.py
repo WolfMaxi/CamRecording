@@ -253,8 +253,8 @@ class MainWindow:
         self.audio_meter.pack(side='right', fill='y')
 
         # Audio Meter elements
-        self.thres_line = self.audio_meter.create_line(0, 0, Settings.AUDIO_METER_WIDTH, 0, fill='red', width=2)
         self.volume = self.audio_meter.create_rectangle(0, 0, 0, 0, outline='')
+        self.thres_line = self.audio_meter.create_line(0, 0, Settings.AUDIO_METER_WIDTH, 0, fill='red', width=2)
 
         # ============== Bottom frame ==============
 

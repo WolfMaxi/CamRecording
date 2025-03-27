@@ -16,10 +16,11 @@ class WindowEvents:
 
     def update_thres(self, event):
         # Update threshold line in preview canvas
-        threshold = self.main.threshold.get()
+        offset = Settings.AUDIO_METER_OFFSET
         audio_clamp = Settings.AUDIO_CLAMP
+        threshold = self.main.threshold.get()
         width, height = self.main.preview_size
-        line_height = int(threshold) / audio_clamp * height
+        line_height = (int(threshold) / audio_clamp * (height - offset * 2)) + offset
         self.main.audio_meter.coords(self.main.thres_line, 0, line_height, width, line_height)
 
     def open_output(self):
