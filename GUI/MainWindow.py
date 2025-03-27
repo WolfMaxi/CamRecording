@@ -237,15 +237,18 @@ class MainWindow:
 
         # ---------------- Mid frame ---------------
 
-        self.preview = tk.Canvas(self.middle_frame, bg='black', highlightthickness=0)
-        self.preview.pack(side='left')
+        preview_frame = tk.Frame(self.middle_frame, bg='black')
+        preview_frame.pack(side='left', fill='both', expand=True)
+
+        self.preview = tk.Canvas(preview_frame, bg='black', highlightthickness=0)
+        self.preview.place(relx=.5, rely=.5, anchor='center')
 
         self.threshold = tk.IntVar()
         self.thres_slider = ttk.Scale(self.middle_frame,from_=0, to=Settings.AUDIO_CLAMP,variable=self.threshold,
                                      command=self.winevent.update_thres, orient='vertical')
         self.thres_slider.pack(side='right', fill='y')
 
-        self.audio_meter = tk.Canvas(self.middle_frame, width=Settings.AUDIO_METER_WIDTH, bg='black', highlightthickness=0)
+        self.audio_meter = tk.Canvas(self.middle_frame, width=Settings.AUDIO_METER_WIDTH, bg='green', highlightthickness=0)
         self.audio_meter.pack(side='right', fill='y')
 
         # ============== Bottom frame ==============
