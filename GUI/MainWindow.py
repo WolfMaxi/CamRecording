@@ -169,6 +169,7 @@ class MainWindow:
             # Only change when preview is resized
             self.preview_size = (width, height)
             self.preview.config(width=width, height=height)
+            self.winevent.update_thres()
 
     def __init__(self):
         self.cam = None
@@ -246,7 +247,7 @@ class MainWindow:
 
         self.threshold = tk.IntVar()
         self.thres_slider = ttk.Scale(self.middle_frame,from_=0, to=Settings.AUDIO_CLAMP,variable=self.threshold,
-                                     command=self.winevent.update_thres, orient='vertical')
+                                     command=lambda event: self.winevent.update_thres(), orient='vertical')
         self.thres_slider.pack(side='right', fill='y')
 
         self.audio_meter = tk.Canvas(self.middle_frame, width=Settings.AUDIO_METER_WIDTH, bg=Settings.AUDIO_METER_COLOR, highlightthickness=0)
@@ -346,7 +347,7 @@ class MainWindow:
         self.window.bind("<Configure>", lambda event: self.on_resize())
 
 
-        self.winevent.update_thres(self.threshold.get())
+        self.winevent.update_thres()
 
         self.init_microphone()
         if self.available_cameras:
