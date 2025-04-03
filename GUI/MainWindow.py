@@ -20,7 +20,9 @@ class MainWindow:
 
     @staticmethod
     def meter_color(volume_normalized):
-        # Change volume meter color based on level
+        """
+        Change audio meter color based on volume
+        """
         if volume_normalized > Settings.METER_THRESHOLD_RED:
             color = Settings.METER_COLOR_RED
         elif volume_normalized > Settings.METER_THRESHOLD_ORANGE:
@@ -164,12 +166,15 @@ class MainWindow:
         return width, height
 
     def on_resize(self):
+        """
+        Triggered when window is resized
+        """
         width, height = self.get_preview_size()
         if (width, height) != self.preview_size:
             # Only change when preview is resized
             self.preview_size = (width, height)
             self.preview.config(width=width, height=height)
-            self.winevent.update_thres()
+        self.winevent.update_thres()
 
     def __init__(self):
         self.cam = None
