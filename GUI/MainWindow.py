@@ -1,12 +1,13 @@
 from datetime import datetime, timedelta
-from PIL import Image, ImageTk
 import tkinter.ttk as ttk
 import tkinter as tk
 import os
 
 from Devices.Camera import Camera
 from Devices.Microphone import Microphone
+
 from GUI.WindowEvents import WindowEvents
+from GUI.WindowUtils import WindowUtils
 
 from Config.ConfigHandler import ConfigHandler
 from Config import ConfigUtils
@@ -32,13 +33,16 @@ class MainWindow:
         return color
 
     def update_meter(self, volume):
-        # Update input device volume in preview
+        """
+        Update input device volume in audio meter
+        """
         audio_clamp = Settings.AUDIO_CLAMP
+        # volume capped at audio clamp
         volume_normalized = min(max(volume, audio_clamp), 0)
         color = self.meter_color(volume_normalized)
-        width, height = self.audio_meter.winfo_width(), self.audio_meter.winfo_height()
-        meter_height = height + int((volume_normalized - audio_clamp) / audio_clamp * height)
-        self.audio_meter.coords(self.volume, 0, height, width, meter_height)
+        height = self.audio_meter.winfo_height()
+        meter_height = height - (volume_normalized - audio_clamp) / (-audio_clamp) * height
+        self.audio_meter.coords(self.volume, 0, meter_height, Settings.AUDIO_METER_WIDTH, height)
         self.audio_meter.itemconfig(self.volume, fill=color)
 
     def start_recording(self):
@@ -55,7 +59,9 @@ class MainWindow:
         self.mic.stop_recording()
 
     def update_rec_status(self, volume):
-        # Update recording status based on volume
+        """
+        Update recording status based on volume
+        """
         if self.rec_status:
             rec_status = None
             if volume >= self.threshold.get():
@@ -74,7 +80,9 @@ class MainWindow:
                 self.cam.rec_status = rec_status
 
     def update_preview(self):
-        # Update camera preview
+        """
+        Update video feed for preview
+        """
         frame = self.cam.retrieve_preview(self.preview_size)
         if frame:
             self.preview.imgtk = frame
@@ -93,7 +101,6 @@ class MainWindow:
         self.preview.after(40, self.update_preview)
 
     def init_camera(self):
-        # Initialize camera
         if self.available_cameras:
             cam_index = int(self.cam_index.get())
             resolution = self.resolution.get()
@@ -111,70 +118,6 @@ class MainWindow:
         device_index = self.input_devices[device_name]
         self.device_index = device_index
         self.mic = Microphone(self.device_index)
-
-    def get_window_size(self):
-        screen_width = self.window.winfo_screenwidth()
-        screen_height = self.window.winfo_screenheight()
-        return screen_width, screen_height
-
-    def get_default_window_size(self):
-        """
-        Return default window size & position
-        """
-        screen_width, screen_height = self.get_window_size()
-        rel_width, rel_height = Settings.WINDOW_REL_SIZE
-        window_width = round(screen_width * rel_width)
-        window_height = round(screen_height * rel_height)
-        return (
-            (window_width, window_height),
-            (
-                round((screen_width - window_width) / 2),
-                round((screen_height - window_height) / 2)
-            )
-        )
-
-    def set_window_icon(self):
-        if os.name == 'nt':
-            # Windows
-            self.window.iconbitmap(Settings.ICON_PATH_WIN)
-        else:
-            # Linux / UNIX / macOS
-            icon = Image.open(Settings.ICON_PATH_UNIX)
-            icon = ImageTk.PhotoImage(icon)
-            self.window.iconphoto(True, icon)
-
-    def get_preview_size(self):
-        """
-        Determine maximum preview size maintaining its aspect ratio
-        """
-        # determine aspect ratio
-        width, height = map(int, self.resolution.get().split('x'))
-        aspect_ratio = width / height
-
-        # Calculate width including audio meter
-        audio_meter_width = Settings.AUDIO_METER_WIDTH + self.thres_slider.winfo_width()
-        max_width = self.window.winfo_width() - audio_meter_width
-        max_height = self.window.winfo_height() - (self.top_frame.winfo_height() + self.bottom_frame.winfo_height())
-        if max_width / max_height > aspect_ratio:
-            # Window is too wide, limit by height
-            height = max_height
-            width = round(height * aspect_ratio)
-        else:
-            # Window is too tall, limit by width
-            width = max_width
-            height = round(width / aspect_ratio)
-        return width, height
-
-    def on_resize(self):
-        """
-        Triggered when window is resized
-        """
-        width, height = self.get_preview_size()
-        if (width, height) != self.preview_size:
-            # Only change when preview is resized
-            self.preview_size = (width, height)
-            self.preview.config(width=width, height=height)
-        self.winevent.update_thres()
 
     def __init__(self):
         self.cam = None
@@ -200,23 +143,27 @@ class MainWindow:
         """
 
         # Init comp functions
-        self.winevent = WindowEvents(self)
-        self.conf_handler = ConfigHandler(self)
+        self.winEvent = WindowEvents(self)
+        self.winUtil = WindowUtils(self)
+        self.confHandler = ConfigHandler(self)
 
         # Setup main window
         self.window = tk.Tk()
         self.window.title(Settings.WINDOW_TITLE)
-        self.set_window_icon()
+        self.winUtil.set_window_icon()
 
         # Set default window position
-        default_win_size, default_win_pos = self.get_default_window_size()
+        default_win_size, default_win_pos = self.winUtil.get_default_window_size()
         self.window.minsize(*default_win_size)
         self.window.geometry('%dx%d+%d+%d' % (default_win_size + default_win_pos))
+
+        # ========== START OF TK WIDGETS ==========
 
         # Display loading text
         loading_text = tk.Label(self.window, text='Scanning for video devices...', font=font_large, **widget_opts)
         loading_text.place(relx=.5, rely=.5, anchor='center')
 
+        # Update window to show loading screen
         self.window.configure(bg=Settings.WINDOW_BG_COLOR)
         self.window.update_idletasks()
 
@@ -251,11 +198,12 @@ class MainWindow:
         self.preview.place(relx=.5, rely=.5, anchor='center')
 
         self.threshold = tk.IntVar()
-        self.thres_slider = ttk.Scale(self.middle_frame,from_=0, to=Settings.AUDIO_CLAMP,variable=self.threshold,
-                                     command=lambda event: self.winevent.update_thres(), orient='vertical')
+        self.thres_slider = ttk.Scale(self.middle_frame, from_=0, to=Settings.AUDIO_CLAMP, variable=self.threshold,
+                                      command=lambda event: self.winEvent.update_thres(), orient='vertical')
         self.thres_slider.pack(side='right', fill='y')
 
-        self.audio_meter = tk.Canvas(self.middle_frame, width=Settings.AUDIO_METER_WIDTH, bg=Settings.AUDIO_METER_COLOR, highlightthickness=0)
+        self.audio_meter = tk.Canvas(self.middle_frame, width=Settings.AUDIO_METER_WIDTH, bg=Settings.AUDIO_METER_COLOR,
+                                     highlightthickness=0)
         self.audio_meter.pack(side='right', fill='y')
 
         # Audio Meter elements
@@ -280,7 +228,7 @@ class MainWindow:
         self.available_cameras = Camera.get_available_cameras()
         if self.available_cameras:
             self.cam_index.set(self.available_cameras[0])
-        cam_menu = ttk.OptionMenu(self.bottom_frame, self.cam_index, self.cam_index.get(),*self.available_cameras,
+        cam_menu = ttk.OptionMenu(self.bottom_frame, self.cam_index, self.cam_index.get(), *self.available_cameras,
                                   command=lambda cam: self.init_camera())
         cam_menu.grid(row=0, column=2, sticky='we', padx=(0, padding))
 
@@ -297,16 +245,16 @@ class MainWindow:
         self.device_index = self.input_devices[self.input_device_name.get()]
 
         mic_menu = ttk.OptionMenu(self.bottom_frame, self.input_device_name, self.input_device_names[0],
-                                      *self.input_device_names[1:],command=lambda mic: self.init_microphone())
+                                  *self.input_device_names[1:], command=lambda mic: self.init_microphone())
         mic_menu.grid(row=0, column=4, sticky='we', padx=(0, padding))
 
-        self.start_button = ttk.Button(self.bottom_frame, text='Start', command=self.winevent.toggle_recording)
+        self.start_button = ttk.Button(self.bottom_frame, text='Start', command=self.winEvent.toggle_recording)
         self.start_button.grid(row=0, column=5, sticky='w', padx=(0, padding))
 
         # ------------- Second column ------------
 
         output_label = tk.Label(self.bottom_frame, text='Output', font=font_large, **widget_opts)
-        output_label.bind('<Double-1>', lambda event: self.winevent.open_output())
+        output_label.bind('<Double-1>', lambda event: self.winEvent.open_output())
         output_label.grid(row=1, column=0, sticky='w', padx=(0, padding))
 
         # Resolution
@@ -328,31 +276,33 @@ class MainWindow:
         output_text = ttk.Entry(self.bottom_frame, textvariable=self.output, state='readonly')
         output_text.grid(row=1, column=4, sticky='we', padx=(0, padding))
 
-        browse_button = ttk.Button(self.bottom_frame, text='Browse', command=self.winevent.set_output)
+        browse_button = ttk.Button(self.bottom_frame, text='Browse', command=self.winEvent.set_output)
         browse_button.grid(row=1, column=5, sticky='w', padx=(0, padding))
 
         # HUD
 
         self.hud_enabled = tk.BooleanVar(value=True)
         self.hud_button = ttk.Checkbutton(self.bottom_frame, text='HUD', variable=self.hud_enabled,
-                       command=self.winevent.toggle_hud)
+                                          command=self.winEvent.toggle_hud)
         self.hud_button.grid(row=0, column=6, sticky='w')
 
-        # Load and apply settings from config file
-        try:
-            self.conf_handler.load_config()
-        except FileNotFoundError:
-            pass
+        # ========== END OF tk Widgets ==========
 
-        width, height = self.get_preview_size()
+        #
+        width, height = self.winUtil.get_preview_size()
         self.preview_size = (width, height)
         preview_center = (width / 2, height / 2)
 
         self.cam_stream = self.preview.create_image(*preview_center)
-        self.window.bind("<Configure>", lambda event: self.on_resize())
+        self.window.bind("<Configure>", lambda event: self.winEvent.on_resize())
 
-
-        self.winevent.update_thres()
+        # Load and apply settings from config file
+        try:
+            self.confHandler.load_config()
+        except FileNotFoundError:
+            pass
+        # Update threshold line once after applying config
+        self.winEvent.update_thres()
 
         self.init_microphone()
         if self.available_cameras:
@@ -368,4 +318,4 @@ class MainWindow:
         if self.cam:
             self.cam.close()
         self.mic.close()
-        self.conf_handler.save_config()
+        self.confHandler.save_config()

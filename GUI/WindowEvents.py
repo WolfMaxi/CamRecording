@@ -14,8 +14,21 @@ class WindowEvents:
         # MainWindow class
         self.main = MainWindow
 
+    def on_resize(self):
+        """
+        Triggered when window is resized
+        """
+        width, height = self.main.winUtil.get_preview_size()
+        if (width, height) != self.main.preview_size:
+            # Only change when preview is resized
+            self.main.preview_size = (width, height)
+            self.main.preview.config(width=width, height=height)
+        self.update_thres()
+
     def update_thres(self):
-        # Update threshold line in preview canvas
+        """
+        Update threshold line in preview canvas
+        """
         audio_clamp = Settings.AUDIO_CLAMP
         threshold = self.main.threshold.get()
         width = Settings.AUDIO_METER_WIDTH
@@ -24,23 +37,33 @@ class WindowEvents:
         self.main.audio_meter.coords(self.main.thres_line, 0, line_height, width, line_height)
 
     def open_output(self):
-        # Open output folder in Windows explorer
+        """
+        Open output folder in Windows explorer
+        """
         output = os.path.normpath(self.main.output.get())
         subprocess.Popen(f'explorer "{output}"')
 
     def set_output(self):
-        # Browse files to set output directory
+        """
+        Browse files to set output directory
+        """
         output = tkinter.filedialog.askdirectory()
         if os.path.isdir(output):
             self.main.output.set(output)
 
     def toggle_hud(self):
+        """
+        Toggle datetime being displayed in video feed
+        """
         if self.main.hud_enabled.get():
             self.main.cam.hud_enabled = True
         else:
             self.main.cam.hud_enabled = False
 
     def toggle_recording(self):
+        """
+        Toggle whether video should be recorded when audio exceeds threshold
+        """
         if self.main.rec_status:
             # Disable recording
             rec_status = 0
