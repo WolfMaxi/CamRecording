@@ -4,8 +4,8 @@ from threading import Thread
 import cv2
 
 from Recorder.VideoRecorder import VideoRecorder
+from Config import ConfigUtils
 import Config.Settings as Settings
-from time import time
 
 
 class Camera:
@@ -14,18 +14,33 @@ class Camera:
     """
 
     @staticmethod
+    def get_backend():
+        """
+        Use different OpenCV backend depending on OS
+        """
+        if ConfigUtils.using_windows():
+            return Settings.CAP_BACKEND_WIN
+        else:
+            return Settings.CAP_BACKEND_UNIX
+
+    @staticmethod
     def get_available_cameras(max_cameras=5):
-        # Get all available cameras
+        """
+        Determine all available cameras
+        """
         available_cameras = []
+        backend = Camera.get_backend()
         for i in range(max_cameras):
-            cap = cv2.VideoCapture(i, cv2.CAP_DSHOW)
+            cap = cv2.VideoCapture(i, backend)
             if cap.isOpened():
                 available_cameras.append(i)
             cap.release()
         return available_cameras
 
     def retrieve_preview(self, size):
-        # Retrieve camera preview for MainWindow
+        """
+        Retrieve camera preview for MainWindow
+        """
         frame = self.current_frame
         if frame is None:
             return
@@ -104,7 +119,8 @@ class Camera:
         self.circle_radius = 6
 
         # Create opencv videocapture
-        self.cap = cv2.VideoCapture(self.cam_index, cv2.CAP_DSHOW)
+        backend = self.get_backend()
+        self.cap = cv2.VideoCapture(self.cam_index, backend)
         self.cap.set(cv2.CAP_PROP_FRAME_WIDTH, width)
         self.cap.set(cv2.CAP_PROP_FRAME_HEIGHT, height)
         self.cap.set(cv2.CAP_PROP_FPS, fps)

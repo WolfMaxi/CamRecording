@@ -3,24 +3,26 @@ from Config import Settings
 import subprocess
 import os
 
-using_windows = os.name == 'nt'
+
+def using_windows():
+    return os.name == 'nt'
 
 
 def get_config_dir():
     """
     Retrieve Config Directory under Windows / UNIX
     """
-    if using_windows:
+    if using_windows():
         return os.path.join(os.environ['USERPROFILE'], Settings.CONFIG_PATH)  # Windows
     else:
-        return os.path.join('~/.config', Settings.CONFIG_PATH) # UNIX
+        return os.path.join('~/.config', Settings.CONFIG_PATH)  # UNIX
 
 
 def get_documents_dir():
     """
     Retrieve standard output directory under Windows / UNIX
     """
-    if using_windows:
+    if using_windows():
         return os.path.join(os.environ['USERPROFILE'], 'Documents')
     else:
         # Try xdg-user-dir
@@ -37,6 +39,6 @@ def get_documents_dir():
         if xdg_documents and Path(xdg_documents).exists():
             return Path(xdg_documents)
 
-        #Default fallback to ~/Documents (Linux/macOS standard)
+        # Default fallback to ~/Documents (Linux/macOS standard)
         fallback_dir = Path.home() / "Documents"
         return fallback_dir if fallback_dir.exists() else Path.home()
