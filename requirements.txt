@@ -1,5 +1,5 @@
+pillow
+opencv-python
 numpy
-Pillow
-pywin32
-sounddevice
 soundfile
+sounddevice
