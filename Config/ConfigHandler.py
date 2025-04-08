@@ -16,7 +16,7 @@ class ConfigHandler:
         self.config['Cam'] = {
             'index': self.main.cam_index.get(),
             'resolution': self.main.resolution.get(),
-            'hud': self.main.hud_enabled.get()
+            'hud': self.main.overlay_enabled.get()
         }
         self.config['Mic'] = {
             'index': self.main.device_index,
@@ -63,7 +63,7 @@ class ConfigHandler:
         # HUD settings
         hud_enabled = self.config['Cam']['hud']
         if hud_enabled in ('True', 'False'):
-            self.main.hud_enabled.set(hud_enabled)
+            self.main.overlay_enabled.set(hud_enabled)
 
         # Input device settings
         input_device_name = self.config['Mic']['name']

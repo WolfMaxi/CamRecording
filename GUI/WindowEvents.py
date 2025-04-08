@@ -34,7 +34,7 @@ class WindowEvents:
         width = Settings.AUDIO_METER_WIDTH
         height = self.main.audio_meter.winfo_height()
         line_height = (int(threshold) / audio_clamp * height)
-        self.main.audio_meter.coords(self.main.thres_line, 0, line_height, width, line_height)
+        self.main.audio_meter.coords(self.main.threshold_line, 0, line_height, width, line_height)
 
     def open_output(self):
         """
@@ -51,14 +51,14 @@ class WindowEvents:
         if os.path.isdir(output):
             self.main.output.set(output)
 
-    def toggle_hud(self):
+    def toggle_overlay(self):
         """
-        Toggle datetime being displayed in video feed
+        Toggle datetime overlay being displayed in video feed
         """
-        if self.main.hud_enabled.get():
-            self.main.cam.hud_enabled = True
+        if self.main.overlay_enabled.get():
+            self.main.cam.overlay_enabled = True
         else:
-            self.main.cam.hud_enabled = False
+            self.main.cam.overlay_enabled = False
 
     def toggle_recording(self):
         """

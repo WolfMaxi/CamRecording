@@ -56,7 +56,7 @@ class Camera:
         while self.capture:
             ret, cap = self.cap.read()
             if ret:
-                if self.hud_enabled:
+                if self.overlay_enabled:
                     date_time_str = datetime.now().strftime("%d.%m.%Y %H:%M:%S")
                     cv2.putText(cap, date_time_str, self.text_pos, self.font,
                                 self.font_size, (255, 255, 255), self.font_thickness)
@@ -81,10 +81,10 @@ class Camera:
         self.cap_thread.join()
         self.cap.release()
 
-    def __init__(self, cam_index, resolution, hud_enabled=False, fps=10, buffer_duration=5):
+    def __init__(self, cam_index, resolution, overlay_enabled=False, fps=30, buffer_duration=5):
         self.cam_index = cam_index
         self.resolution = resolution
-        self.hud_enabled = hud_enabled
+        self.overlay_enabled = overlay_enabled
 
         # Frame capture
         self.capture = True

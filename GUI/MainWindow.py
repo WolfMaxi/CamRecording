@@ -109,7 +109,7 @@ class MainWindow:
                 if cam_index == self.cam.cam_index and resolution == self.cam.resolution:
                     return
                 self.cam.close()
-            self.cam = Camera(cam_index, resolution, self.hud_enabled.get())
+            self.cam = Camera(cam_index, resolution, self.overlay_enabled.get())
 
     def init_microphone(self):
         if self.mic:
@@ -152,11 +152,6 @@ class MainWindow:
         self.window.title(Settings.WINDOW_TITLE)
         self.winUtil.set_window_icon()
 
-        # Set default window position
-        default_win_size, default_win_pos = self.winUtil.get_default_window_size()
-        self.window.minsize(*default_win_size)
-        self.window.geometry('%dx%d+%d+%d' % (default_win_size + default_win_pos))
-
         # ========== START OF TK WIDGETS ==========
 
         # Display loading text
@@ -186,29 +181,33 @@ class MainWindow:
         self.preview_label = tk.Label(self.top_frame, text='Preview', font=font_large, **widget_opts)
         self.preview_label.pack(side='left')
 
-        self.db_label = tk.Label(self.top_frame, text='Audio threshold', font=font_large, **widget_opts)
-        self.db_label.pack(side='right')
+        self.threshold_label = tk.Label(self.top_frame, text='Threshold', font=font_large, **widget_opts)
+        self.threshold_label.pack(side='right')
 
         # ---------------- Mid frame ---------------
 
-        preview_frame = tk.Frame(self.middle_frame, bg='black')
-        preview_frame.pack(side='left', fill='both', expand=True)
+        # Preview frame on the left
+        self.preview_frame = tk.Frame(self.middle_frame, bg='black')
+        self.preview_frame.pack(side='left', fill='both', expand=True)
 
-        self.preview = tk.Canvas(preview_frame, bg='black', highlightthickness=0)
+        self.preview = tk.Canvas(self.preview_frame, bg='black', highlightthickness=0)
         self.preview.place(relx=.5, rely=.5, anchor='center')
 
-        self.threshold = tk.IntVar()
-        self.thres_slider = ttk.Scale(self.middle_frame, from_=0, to=Settings.AUDIO_CLAMP, variable=self.threshold,
-                                      command=lambda event: self.winEvent.update_thres(), orient='vertical')
-        self.thres_slider.pack(side='right', fill='y')
+        # Volume meter with fixed width on the right
+        volume_meter_frame = tk.Frame(self.middle_frame, width=Settings.AUDIO_METER_WIDTH + 30)
+        volume_meter_frame.pack(side='right', fill='y')
 
-        self.audio_meter = tk.Canvas(self.middle_frame, width=Settings.AUDIO_METER_WIDTH, bg=Settings.AUDIO_METER_COLOR,
-                                     highlightthickness=0)
-        self.audio_meter.pack(side='right', fill='y')
+        self.audio_meter = tk.Canvas(volume_meter_frame, width=Settings.AUDIO_METER_WIDTH, highlightthickness=0)
+        self.audio_meter.pack(side='left', fill='both', expand=True)
+
+        self.threshold = tk.IntVar()
+        self.threshold_slider = ttk.Scale(volume_meter_frame, from_=0, to=Settings.AUDIO_CLAMP, variable=self.threshold,
+                                          command=lambda event: self.winEvent.update_thres(), orient='vertical')
+        self.threshold_slider.pack(side='right', fill='y')
 
         # Audio Meter elements
         self.volume = self.audio_meter.create_rectangle(0, 0, 0, 0, outline='')
-        self.thres_line = self.audio_meter.create_line(0, 0, Settings.AUDIO_METER_WIDTH, 0, fill='red', width=2)
+        self.threshold_line = self.audio_meter.create_line(0, 0, Settings.AUDIO_METER_WIDTH, 0, fill='red', width=2)
 
         # ============== Bottom frame ==============
 
@@ -268,8 +267,8 @@ class MainWindow:
                                        command=lambda res: self.init_camera())
         self.res_menu.grid(row=1, column=2, sticky='w', padx=(0, padding))
 
-        path_label = tk.Label(self.bottom_frame, text='Path', font=font_small, **widget_opts)
-        path_label.grid(row=1, column=3, sticky='w', padx=(0, padding))
+        output_label = tk.Label(self.bottom_frame, text='Output', font=font_small, **widget_opts)
+        output_label.grid(row=1, column=3, sticky='w', padx=(0, padding))
 
         documents_path = ConfigUtils.get_documents_dir()
         self.output = tk.StringVar(value=documents_path)
@@ -281,10 +280,12 @@ class MainWindow:
 
         # HUD
 
-        self.hud_enabled = tk.BooleanVar(value=True)
-        self.hud_button = ttk.Checkbutton(self.bottom_frame, text='HUD', variable=self.hud_enabled,
-                                          command=self.winEvent.toggle_hud)
-        self.hud_button.grid(row=0, column=6, sticky='w')
+        ttk.Button(self.bottom_frame, text='Screenshot').grid(row=0, column=6)
+
+        self.overlay_enabled = tk.BooleanVar(value=True)
+        self.overlay_button = ttk.Checkbutton(self.bottom_frame, text='Overlay', variable=self.overlay_enabled,
+                                              command=self.winEvent.toggle_overlay)
+        self.overlay_button.grid(row=1, column=6, sticky='we')
 
         # ========== END OF tk Widgets ==========
 
@@ -308,6 +309,11 @@ class MainWindow:
         if self.available_cameras:
             self.init_camera()
             self.update_preview()
+
+        # Adjust window size
+        default_win_geometry = self.winUtil.get_default_window_geometry()
+        self.window.minsize(*default_win_geometry[:2])
+        self.window.geometry('%dx%d+%d+%d' % default_win_geometry)
 
         loading_text.destroy()
 
